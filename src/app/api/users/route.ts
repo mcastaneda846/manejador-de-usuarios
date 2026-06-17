@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import { hashPassword } from "@/lib/hash";
+import { sendWelcomeEmail } from "@/lib/mailer";
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,30 +10,59 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
-    const hashedPassword = await hashPassword(
-      body.password
-    );
+    if (!body.nombre || !body.email || !body.password) {
+      return NextResponse.json(
+        { success: false, message: "Datos incompletos" },
+        { status: 400 }
+      );
+    }
+
+    const exists = await User.findOne({ email: body.email });
+
+    if (exists) {
+      return NextResponse.json(
+        { success: false, message: "El email ya existe" },
+        { status: 409 }
+      );
+    }
+
+    const hashedPassword = await hashPassword(body.password);
 
     const user = await User.create({
       nombre: body.nombre,
       cc: body.cc,
       email: body.email,
       password: hashedPassword,
-      role: body.role,
+      role: body.role || "user",
     });
+
+    // ENVIAR EMAIL DE BIENVENIDA (nuevo)
+    await sendWelcomeEmail(
+      user.email,
+      user.nombre,
+      user.email
+    );
 
     return NextResponse.json(
       {
         success: true,
-        user,
+        user: {
+          _id: user._id,
+          nombre: user.nombre,
+          email: user.email,
+          cc: user.cc,
+          role: user.role,
+        },
       },
       { status: 201 }
     );
   } catch (error) {
+    console.error(error);
+
     return NextResponse.json(
       {
         success: false,
-        error,
+        message: "Error interno del servidor",
       },
       { status: 500 }
     );
@@ -43,7 +73,7 @@ export async function GET() {
   try {
     await connectDB();
 
-    const users = await User.find();
+    const users = await User.find().select("-password");
 
     return NextResponse.json({
       success: true,
@@ -53,11 +83,9 @@ export async function GET() {
     return NextResponse.json(
       {
         success: false,
-        error,
+        message: "Error al obtener usuarios",
       },
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
 }

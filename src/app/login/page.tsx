@@ -1,9 +1,16 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { Button, Input, Label, TextField, FieldError } from "@heroui/react";
+import {
+  Button,
+  Input,
+  Label,
+  TextField,
+  FieldError,
+} from "@heroui/react";
 
 import { login } from "@/services/authService";
 
@@ -20,7 +27,6 @@ export default function LoginPage() {
     const formData = new FormData(e.currentTarget);
 
     const email = formData.get("email") as string;
-
     const password = formData.get("password") as string;
 
     try {
@@ -31,10 +37,8 @@ export default function LoginPage() {
         return;
       }
 
-      // guardar sesión
       localStorage.setItem("user", JSON.stringify(res.user));
 
-      // redirigir
       if (res.user.role === "admin") {
         router.push("/admin/users");
       } else {
@@ -55,14 +59,15 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* CAMBIO CLAVE: FORM NATIVO */}
         <form className="flex flex-col gap-4" onSubmit={onSubmit}>
           <TextField
             isRequired
             name="email"
             type="email"
             validate={(value) => {
-              if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(value)) {
+              if (
+                !/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(value)
+              ) {
                 return "Ingrese un correo válido";
               }
 
@@ -80,11 +85,27 @@ export default function LoginPage() {
             <FieldError />
           </TextField>
 
-          {error && <p className="text-sm text-red-500">{error}</p>}
+          {error && (
+            <p className="text-sm text-red-500">
+              {error}
+            </p>
+          )}
 
           <Button className="w-full" type="submit">
             Iniciar sesión
           </Button>
+
+          <div className="text-center text-sm">
+            <span className="text-gray-500">
+              ¿No tienes una cuenta?{" "}
+            </span>
+            <Link
+              href="/register"
+              className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
+            >
+              Regístrate aquí
+            </Link>
+          </div>
         </form>
       </div>
     </main>

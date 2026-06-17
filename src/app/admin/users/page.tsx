@@ -17,17 +17,12 @@ export default function UsersPage() {
   const router = useRouter();
 
   const [users, setUsers] = useState<any[]>([]);
-  const [editingUser, setEditingUser] =
-    useState<any>(null);
-
-  const [authorized, setAuthorized] =
-    useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
-    const userString =
-      localStorage.getItem("user");
+    const userString = localStorage.getItem("user");
 
-    // ❌ no hay sesión
     if (!userString) {
       router.push("/login");
       return;
@@ -35,15 +30,12 @@ export default function UsersPage() {
 
     const user = JSON.parse(userString);
 
-    // ❌ no es admin
     if (user.role !== "admin") {
       router.push("/dashboard");
       return;
     }
 
-    // ✅ autorizado
     setAuthorized(true);
-
     loadUsers();
   }, [router]);
 
@@ -81,10 +73,7 @@ export default function UsersPage() {
   }
 
   function handleEdit(id: string) {
-    const user = users.find(
-      (u) => u._id === id
-    );
-
+    const user = users.find((u) => u._id === id);
     setEditingUser(user);
   }
 
@@ -92,10 +81,7 @@ export default function UsersPage() {
     if (!editingUser) return;
 
     try {
-      await updateUser(
-        editingUser._id,
-        data
-      );
+      await updateUser(editingUser._id, data);
 
       setEditingUser(null);
       await loadUsers();
@@ -104,7 +90,11 @@ export default function UsersPage() {
     }
   }
 
-  // ⛔ bloqueo de render hasta validar acceso
+  function handleLogout() {
+    localStorage.removeItem("user");
+    router.push("/login");
+  }
+
   if (!authorized) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -115,27 +105,38 @@ export default function UsersPage() {
 
   return (
     <div className="min-h-screen p-8">
-      <h1 className="mb-6 text-3xl font-bold">
-        Administración de Usuarios
-      </h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">
+          Administración de Usuarios
+        </h1>
+
+        <button
+          onClick={handleLogout}
+          className="px-4 py-2 text-sm bg-red-500 text-white rounded hover:bg-red-600"
+        >
+          Logout
+        </button>
+      </div>
 
       <UserForm
         title="Crear Usuario"
-        onSubmit={handleCreate}
+        onSubmit={async (data) => {
+          await handleCreate(data);
+        }}
       />
 
       {editingUser && (
         <UserForm
           title="Editar Usuario"
           initialData={editingUser}
-          onSubmit={handleUpdate}
+          onSubmit={async (data) => {
+            await handleUpdate(data);
+          }}
         />
       )}
 
       {users.length === 0 ? (
-        <p>
-          No hay usuarios registrados. ¡Crea el primero!
-        </p>
+        <p>No hay usuarios registrados. ¡Crea el primero!</p>
       ) : (
         <div className="grid gap-4">
           {users.map((user) => (
@@ -143,7 +144,7 @@ export default function UsersPage() {
               key={user._id}
               id={user._id}
               nombre={user.nombre}
-              cc={user.cc}
+              cc={user.cc}  //Opcional
               email={user.email}
               role={user.role}
               onEdit={handleEdit}

@@ -7,12 +7,21 @@ export async function POST(request: NextRequest) {
   try {
     await connectDB();
 
-    const { email, password } =
-      await request.json();
+    const body = await request.json();
 
-    const user = await User.findOne({
-      email,
-    });
+    const { email, password } = body;
+
+    if (!email || !password) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Email y password son requeridos",
+        },
+        { status: 400 }
+      );
+    }
+
+    const user = await User.findOne({ email }).select("+password");
 
     if (!user) {
       return NextResponse.json(
@@ -24,18 +33,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const isValid =
-      await comparePassword(
-        password,
-        user.password
-      );
+    const isValid = await comparePassword(password, user.password);
 
     if (!isValid) {
       return NextResponse.json(
         {
           success: false,
-          message:
-            "Contraseña incorrecta",
+          message: "Contraseña incorrecta",
         },
         { status: 401 }
       );
@@ -44,17 +48,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       user: {
-        _id: user._id,
+        _id: user._id.toString(),
         nombre: user.nombre,
         email: user.email,
         role: user.role,
       },
     });
   } catch (error) {
+    console.error("LOGIN ERROR:", error);
+
     return NextResponse.json(
       {
         success: false,
-        error,
+        message: "Error interno del servidor",
       },
       { status: 500 }
     );

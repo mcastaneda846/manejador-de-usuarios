@@ -9,7 +9,7 @@ export async function login(email: string, password: string) {
 
   const data = await response.json();
 
-  // 🔥 importante: forzar error si HTTP falla
+  // importante: forzar error si HTTP falla
   if (!response.ok) {
     return {
       success: false,
